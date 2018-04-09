@@ -1,0 +1,32 @@
+---
+title: "Untitled"
+author: "Dung Nguyen"
+date: "March 13, 2018"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(ggplot2)
+library(tidyr)
+library(RColorBrewer)
+library(dplyr)
+library(jtools)
+set.seed(4796)
+distance <- data.frame(Experimental = rnorm(150, mean = 0.98, sd=0.008),
+                       Control = rnorm(150, mean=1.00, sd=0.008))
+dis <- gather(distance, condition, distance, 1:2)
+dis$condition <- as.factor(dis$condition)
+
+d <- ggplot(dis, aes(x=condition, y=distance, fill = condition))
+d + geom_violin(trim = FALSE, fill = "white") + 
+      geom_hline(yintercept = 1, color = "black", size = 0.7, linetype="dashed") +
+      geom_boxplot(width=0.1, fill="lightgrey") +
+      labs(x = "Condition", y = "Average Ratio") +
+      theme_apa(legend.pos = "none") +
+      theme(axis.text=element_text(size=12),
+            axis.title=element_text(size=12))
+```

@@ -1,0 +1,254 @@
+---
+title: <center> <h1>Morality and Reach Perception as Bodily Reactions to Pain </h1> </center>
+author: <center> Dung Nguyen </center>
+date: <center> March 21, 2018 </center>
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## **Data**
+
+The raw data have 53 observations; variables containing participants' personal information (from 2 to 6) were not used for the analysis.
+
+We excluded participant number 29 since this participant was told about the hypothesis of the experiment prior to taking the experiment.
+
+```{r}
+data = read.csv("/media/ntdung96/OS1/Users/Dung/Google Drive/Senior/DATA.csv")[-c(29),-c(2:6)]
+data$Condition[data$Condition == 1] = "Control" ## rename
+data$Condition[data$Condition == 2] = "Experimental"
+data$Condition = factor(data$Condition) ## Convert Condition to a factorial variable
+levels(data$Gender)[1] = "Female"
+levels(data$Gender)[2] = "Male"
+```
+
+The data used from this point have the following variables:
+
+```{r}
+names(data)
+```
+
+### Variable computation
+
+I calculated the ratio of reach distance estimation with the chip slided towards over the actual reach distance, the ratio of reach distance estimation with the chip slided away over the actual reach distance, and averaged them.
+
+```{r}
+data$awayratio = data$DistanceAway/data$ActualDistance
+data$towardratio = data$DistanceTowards/data$ActualDistance
+data$dist = (data$awayratio+data$towardratio)/2
+```
+
+I scored the Moral Foundations Sacredness Scale - Harm Subscale by computing the number of times participants chose option 8: "Never for any amount of money" over all 4 items of the subscale (Vecina, 2014).
+
+```{r}
+data$MFS = apply(data[,c(14:17)], 1, mean)
+```
+
+I computed the physical awareness variable by taking the average of 5 Public Body Subscale items from the Body Awareness Questionnaire.
+
+```{r}
+data$pbs = apply(data[,c(19:23)], 1, mean)
+```
+
+I also reverse-coded Vignette 1 and computed the average for answers on 6 vignettes.
+
+```{r, warning=FALSE,message=FALSE}
+library(psych)
+data$Vignette_1 = reverse.code(-1, data$Vignette_1, mini = 1, maxi = 9)
+data$vignette = apply(data[,c(8:13)], 1, mean)
+```
+
+## **Results: hypotheses**
+
+### Manipulation check:
+
+Participants in the experimental group, after immersing their hands in normal water, immersed their hands into freezing water. That freezing water was supposed to cause pain, and participants in the experimental condition were supposed to score higher in the Wong Baker Pain Scale compared to those in the control group.
+
+```{r}
+t.test(data$WongBaker_Pain[data$Condition == "Control"],
+       data$WongBaker_Pain[data$Condition == "Experimental"],
+       alternative = "less", na.action = na.omit, var.equal = TRUE)
+library(lsr)
+cohensD(data$WongBaker_Pain[data$Condition == "Control"],
+        data$WongBaker_Pain[data$Condition == "Experimental"])
+```
+
+The *t*-statistics from performing an independent-samples *t*-test did not confirm the expectation. There is almost no difference (*t*(45) = .44, *p* = .67, *d* = .13) in self-report pain between the control group (*M* = 2.78, *SD* = 3.06, *n* = 24) and the experimental group (*M* = 2.42, *SD* = 2.64, *n* = 28). These statistics also indicates that people seemed to report that they felt almost no pain to very little pain. This can be visualized by the plot below:
+
+```{r, warning=FALSE, message=FALSE}
+library(ggplot2)
+library(jtools)
+ggplot(data = data, aes(x=Condition, y=WongBaker_Pain)) +
+      geom_violin(fill = "lightblue", color = "black") +
+      geom_jitter(position=position_jitter(width=.1, height=0))
+```
+
+### Vignette
+
+After performing independent-samples *t*-test, I found that the average score for all 6 vignettes does not differ (*t*(49) = -.07, *p* = .47, *d* = .02) between the experimental group(*M* = 5.58, *SD* = 1.24, *n* = 28) and the control group (*M* = 5.56, *SD* = 1.25, *n* = 24).
+
+```{r}
+t.test(data$vignette[data$Condition == "Control"],
+       data$vignette[data$Condition == "Experimental"],
+       alternative = "less", var.equal = TRUE)
+cohensD(data$vignette[data$Condition == "Control"],
+        data$vignette[data$Condition == "Experimental"])
+```
+
+```{r, warning=FALSE,message=FALSE}
+library(gridExtra)
+g1 = ggplot(data = data, aes(x=Condition, y=vignette, fill = Condition)) +
+      geom_boxplot(color = "black") +
+      geom_jitter(position=position_jitter(width=.1, height=0)) +
+      theme_apa(legend.pos = "none") +
+      ylab("Vignette Composite Score")+
+      theme(axis.text=element_text(size=12),
+            axis.title=element_text(size=12))
+
+g2 = ggplot(data = data, aes(x=Condition, y=MFS, fill = Condition)) +
+      geom_boxplot(color = "black") +
+      geom_jitter(position=position_jitter(width=.1, height=0)) +
+      theme_apa(legend.pos = "none") +
+      ylab("Moral Foundations Sacredness Scale")+
+      theme(axis.text=element_text(size=12),
+            axis.title=element_text(size=12))
+
+grid.arrange(g1, g2, ncol=2)
+```
+
+I reformatted the data and plotted scores on the 6 vignettes to examine the data better:
+
+```{r, warning=FALSE,message=FALSE}
+library(reshape2)
+data_melted = melt(data[,c(2,8,9,10,11,12,13)], id.vars = "Condition")
+##plot
+ggplot(data = data_melted, aes(x=variable, y=value)) +
+      geom_boxplot(aes(fill=Condition)) +
+      labs(x = "Vignettes", y = "Mean rating") +
+      scale_fill_hue(l=40, c=35)
+```
+
+The exploratory plot above shows that the rating in Vignette 1, on average, appears to be lower in the experimental group, compared to the the average rating in the control group.
+
+There is also low correlation between vignettes, and responses in most vignettes are highly skewed, except for Vignette 1, which seems to have an approximately normal distribution.
+
+```{r, warning=FALSE,message=FALSE}
+library("PerformanceAnalytics")
+chart.Correlation(data[,c(8:13)], histogram=TRUE, pch=19)
+```
+
+### Moral Foundations Sacredness Scale
+
+The following plot suggests that there seems to be no difference in the average responses in the Moral Foundations Sacredness Scale - Harm subscale between the experimental and control group.
+
+There is a positive but low correlation between this MFS scale and the composite score for 6 vignettes.
+
+```{r}
+cor(data$vignette, data$MFS, use = "complete.obs", method = "pearson")
+t.test(data$MFS[data$Condition == "Control"],
+       data$MFS[data$Condition == "Experimental"],
+       alternative = "less", var.equal = TRUE)
+cohensD(data$MFS[data$Condition == "Control"],
+        data$MFS[data$Condition == "Experimental"])
+sd(data$MFS[data$Condition == "Control"])
+sd(data$MFS[data$Condition == "Experimental"])
+```
+
+### Reach Estimation
+I performed an independent-samples *t*-test to test this hypothesis. The reach ratio in the experimental group does significantly differ from the reach ratio in the control group, *t*(50) = 1.67, *p* = .05, *d* = .46. The ratio between the reach estimation and the actual reach distance is significantly smaller in the experimental group (*M* = 1.07, *SD* = .09, *n* = 28) than that ratio in the control group (*M* = 1.11, *SD* = .09, *n* = 24)
+
+```{r}
+t.test(data$dist[data$Condition == "Control"],
+       data$dist[data$Condition == "Experimental"],
+       alternative = "greater", var.equal = TRUE)
+cohensD(data$dist[data$Condition == "Control"],
+        data$dist[data$Condition == "Experimental"])
+```
+
+```{r}
+library(dplyr)
+mdist <- data %>%
+      group_by(Condition) %>%
+      summarize(meandist = mean(dist),
+                se = sqrt(var(dist)/length(dist)))
+ggplot(data=mdist, aes(x=Condition, y=meandist, group = 1)) +
+      geom_line() +
+      geom_point(size = 9)+
+      geom_errorbar(aes(ymin=meandist-se,ymax=meandist+se), width=0.2) +
+      theme_apa(legend.pos = "none") +
+      labs(y = "Reachability Ratio") +
+      theme(axis.text=element_text(size=12),
+            axis.title=element_text(size=12))
+```
+
+## **Results: Covariates**
+
+All covariates were considered in this analysis. The following models were examined and put into tables:
+
+### 1. vignette
+      * vignette = Condition
+      * vignette = Condition + Gender
+      * vignette = Condition + Gender + pbs
+
+```{r, warning=FALSE,message=FALSE,results="asis"}
+library(stargazer)
+stargazer(lm(vignette ~ Condition, data),
+          lm(vignette ~ Condition + Gender, data),
+          lm(vignette ~ Condition + Gender + pbs, data),
+          type = "html", omit.stat=c("LL","ser"),
+          column.sep.width = "7pt", align = TRUE)
+```
+
+
+**Gender** seems to be an important variable when it's highly significant and pretty much not affected by other variables.
+
+```{r}
+t.test(data$vignette[data$Gender == "Male"],
+       data$vignette[data$Gender == "Female"],
+       alternative = "less", var.equal = TRUE)
+cohensD(data$vignette[data$Gender == "Male"],
+        data$vignette[data$Gender == "Female"])
+sd(data$vignette[data$Gender == "Male"], na.rm = TRUE)
+sd(data$vignette[data$Gender == "Female"])
+```
+
+```{r}
+ggplot(data = data, aes(x=Gender, y=vignette)) +
+      geom_boxplot(fill = "lightblue", color = "black") +
+      geom_jitter(position=position_jitter(width=.1, height=0)) +
+      theme_apa(legend.pos = "none") +
+      ylab("Mean Rating across Vignettes")+
+      theme(axis.text=element_text(size=12),
+            axis.title=element_text(size=12))
+```
+
+### 2. MFS
+      * MFS = Condition
+      * MFS = Condition + Gender
+      * MFS = Condition + Gender + pbs
+
+```{r, warning=FALSE,message=FALSE,results="asis"}
+stargazer(lm(MFS ~ Condition, data),
+          lm(MFS ~ Condition + Gender, data),
+          lm(MFS ~ Condition + Gender + pbs, data),
+          type = "html", omit.stat=c("LL","ser"),
+          column.sep.width = "7pt", align = TRUE)
+```
+
+### 3. Reach ratio
+      * dist = Condition
+      * dist = Condition + Gender
+      * dist = Condition + Gender + pbs
+
+```{r, warning=FALSE,message=FALSE,results="asis"}
+stargazer(lm(dist ~ Condition, data),
+          lm(dist ~ Condition + Gender, data),
+          lm(dist ~ Condition + Gender + pbs, data),
+          type = "html", omit.stat=c("LL","ser"),
+          column.sep.width = "7pt", align = TRUE)
+```
+
+
+From the hypothesis testing above, **Condition** was known to have a significant effect (at .05) on reach ratio. This effect seems to be stronger when **Gender** is controlled (significant <.1 in this 2-sided test in regression by default).
